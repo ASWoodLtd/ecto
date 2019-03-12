@@ -321,6 +321,7 @@ defmodule Ecto.Schema do
       @foreign_key_type :id
       @schema_prefix nil
       @field_source_mapper fn x -> x end
+      @duplicated_parent_fields nil
 
       Module.register_attribute(__MODULE__, :ecto_primary_keys, accumulate: true)
       Module.register_attribute(__MODULE__, :ecto_fields, accumulate: true)
@@ -393,6 +394,9 @@ defmodule Ecto.Schema do
           other ->
             raise ArgumentError, "@primary_key must be false or {name, type, opts}"
         end
+
+        if @duplicated_parent_fields && !is_list(@duplicated_parent_fields), do: raise ArgumentError, "@duplicated_parent_fields must be a list"
+        Module.put_attribute(__MODULE__, :struct_fields, {:__duplicated_parent_fields__, @duplicated_parent_fields})
 
       try do
         import Ecto.Schema

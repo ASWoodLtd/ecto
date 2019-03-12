@@ -538,11 +538,27 @@ defmodule Ecto.Association.Has do
     end
 
     changeset = Ecto.Association.update_parent_prefix(changeset, parent)
+                |> sync_duplicated_parent_fields(action, parent_changeset, changeset.data.__duplicated_parent_fields__)
 
     case on_repo_change(refl, %{parent_changeset | data: nil}, changeset, opts) do
       {:ok, _} -> {:ok, nil}
       {:error, changeset} -> {:error, changeset}
     end
+  end
+
+  defp sync_duplicated_parent_fields(changeset, _action, _parent_changeset, nil),
+    do: changeset
+  defp sync_duplicated_parent_fields(changeset, :delete, _parent_changeset, _fields),
+    do: changeset
+  defp sync_duplicated_parent_fields(changeset, _action, _parent_changeset, []),
+    do: changeset
+  defp sync_duplicated_parent_fields(changeset, action, parent_changeset, [{fp, f} | fields]) do
+    Ecto.Changeset.put_change(changeset, f, Ecto.Changeset.get_field(parent_changeset, fp))
+    |> sync_duplicated_parent_fields(action, parent_changeset, fields)
+  end
+  defp sync_duplicated_parent_fields(changeset, action, parent_changeset, [f | fields]) do
+    Ecto.Changeset.put_change(changeset, f, Ecto.Changeset.get_field(parent_changeset, f))
+    |> sync_duplicated_parent_fields(action, parent_changeset, fields)
   end
 
   def on_repo_change(assoc, parent_changeset, changeset, opts) do
